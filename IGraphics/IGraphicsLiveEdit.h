@@ -344,10 +344,10 @@ public:
     if(mClickedOnControl > 0)
     {
       IControl* pControl = GetUI()->GetControl(mClickedOnControl);
+      IRECT r = pControl->GetRECT();
       
       if(mMouseClickedOnResizeHandle)
       {
-        IRECT r = pControl->GetRECT();
         r.R = SnapToGrid(mMouseDownRECT.R + (x - mouseDownX));
         r.B = SnapToGrid(mMouseDownRECT.B + (y - mouseDownY));
         

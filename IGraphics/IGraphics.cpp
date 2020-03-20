@@ -153,9 +153,6 @@ void IGraphics::RemoveSingleControl(int fromIdx)
 {
   IControl* pControl = GetControl(fromIdx);
 
-  if (pControl == mMouseCapture)
-    mMouseCapture = nullptr;
-
   if (pControl == mMouseOver)
     ClearMouseOver();
 
@@ -1432,7 +1429,7 @@ void IGraphics::EnableLiveEdit(bool enable)
   {
     if (!mLiveEdit)
     {
-      mLiveEdit = std::make_unique<IGraphicsLiveEdit>(mHandleMouseOver, mLiveEditSourcePath.Get());
+      mLiveEdit = std::make_unique<IGraphicsLiveEdit>(mEnableMouseOver, mLiveEditSourcePath.Get());
       mLiveEdit->SetDelegate(*GetDelegate());
     }
   }

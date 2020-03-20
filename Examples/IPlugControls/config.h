@@ -52,10 +52,18 @@
 
 #define ROBOTO_FN "Roboto-Regular.ttf"
 #define FORK_AWESOME_FN "forkawesome-webfont.ttf"
+#define FONTAUDIO_FN "fontaudio.ttf"
+
 #define PNGKNOB_FN "knob.png"
 #define PNGKNOB_2X_FN "knob@2x.png"
 #define PNGKNOBROTATE_FN "knob-rotate.png"
 #define PNGKNOBROTATE_2X_FN "knob-rotate@2x.png"
 #define PNGSWITCH_FN "switch.png"
 #define PNGBUTTON_FN "button.png"
+#define SVGSLIDERHANDLE_FN "slider-handle.svg"
+#define SVGSLIDERTRACK_FN "slider-track.svg"
 #define SVGKNOBROTATE_FN "vector-knob.svg"
+#define PNGSLIDERHANDLE_FN "slider-handle.png"
+#define PNGSLIDERTRACK_FN "slider-track.png"
+#define PNGTEXT_FN "font.png"
+#define PNGTEXT_2X_FN "font@2x.png"

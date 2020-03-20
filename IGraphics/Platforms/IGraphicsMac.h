@@ -28,8 +28,6 @@ public:
 
   void SetBundleID(const char* bundleID) { mBundleID.Set(bundleID); }
 
-  bool IsSandboxed();
-
   void* OpenWindow(void* pWindow) override;
   void CloseWindow() override;
   bool WindowIsOpen() override;
@@ -64,7 +62,7 @@ public:
   static int GetUserOSVersion();
 
   bool GetTextFromClipboard(WDL_String& str) override;
-  bool SetTextInClipboard(const WDL_String& str) override;
+  bool SetTextInClipboard(const char* str) override;
 
   void MeasureText(const IText& text, const char* str, IRECT& bounds) const override;
 
@@ -73,7 +71,7 @@ public:
 protected:
   void CreatePlatformImGui() override;
 
-  IPopupMenu* CreatePlatformPopupMenu(IPopupMenu& menu, const IRECT& bounds) override;
+  IPopupMenu* CreatePlatformPopupMenu(IPopupMenu& menu, const IRECT& bounds, bool& isAsync) override;
   void CreatePlatformTextEntry(int paramIdx, const IText& text, const IRECT& bounds, int length, const char* str) override;
 private:
   PlatformFontPtr LoadPlatformFont(const char* fontID, const char* fileNameOrResID) override;

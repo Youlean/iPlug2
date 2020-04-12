@@ -1394,7 +1394,7 @@ public:
   void OnGUIIdle();
   
   /** Called by ICornerResizerControl as the corner is dragged to resize */
-  void OnDragResize(float x, float y);
+  void OnDragResize(float x, float y, bool modCTRL = false);
 
   /** @param enable Set \c true if you want to handle mouse over messages. Note: this may increase the amount CPU usage if you redraw on mouse overs etc */
   void EnableMouseOver(bool enable) { mEnableMouseOver = enable; }

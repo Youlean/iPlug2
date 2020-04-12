@@ -1062,7 +1062,7 @@ void IGraphics::OnMouseDrag(const std::vector<IMouseInfo>& points)
 //        x, y, dX, dY, mod.L, mod.R, mod.S, mod.C, mod.A);
 
   if (mResizingInProcess && points.size() == 1)
-    OnDragResize(points[0].x, points[0].y);
+    OnDragResize(points[0].x, points[0].y, points[0].ms.C);
   else if (ControlIsCaptured())
   {
     for (auto& point : points)
@@ -1394,9 +1394,9 @@ void IGraphics::OnGUIIdle()
   ForAllControls(&IControl::OnGUIIdle);
 }
 
-void IGraphics::OnDragResize(float x, float y)
+void IGraphics::OnDragResize(float x, float y, bool modCTRL)
 {
-  if(mGUISizeMode == EUIResizerMode::Scale)
+  if(mGUISizeMode == EUIResizerMode::Scale || (modCTRL && mGUISizeMode == EUIResizerMode::SizeScale))
   {
     float scaleX = (x * GetDrawScale()) / mMouseDownX;
     float scaleY = (y * GetDrawScale()) / mMouseDownY;

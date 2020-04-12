@@ -144,7 +144,7 @@ enum class EPatternType { Solid, Linear, Radial };
 enum class EPatternExtend { None, Pad, Reflect, Repeat };
 
 /** /todo */
-enum class EUIResizerMode { Scale, Size };
+enum class EUIResizerMode { Scale, Size, SizeScale };
 
 /** /todo */
 enum class ECursor

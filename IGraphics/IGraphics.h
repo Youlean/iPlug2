@@ -1648,6 +1648,7 @@ protected:
   
   friend class IGraphicsLiveEdit;
   friend class ICornerResizerControl;
+  friend class ICornerResizerControlCustom;
   friend class ITextEntryControl;
   
   std::stack<ILayer*> mLayers;

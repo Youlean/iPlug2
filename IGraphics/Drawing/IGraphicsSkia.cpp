@@ -230,6 +230,7 @@ IGraphicsSkia::IGraphicsSkia(IGEditorDelegate& dlg, int w, int h, int fps, float
 #endif
   StaticStorage<Font>::Accessor storage(sFontCache);
   storage.Retain();
+  mMainPath.setIsVolatile(true);
 }
 
 IGraphicsSkia::~IGraphicsSkia()

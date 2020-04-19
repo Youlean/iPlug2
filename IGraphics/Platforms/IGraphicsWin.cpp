@@ -230,9 +230,11 @@ void IGraphicsWin::OnDisplayTimer(int vBlankCount)
     {
       case kCommit:
       {
-        char txt[MAX_WIN32_PARAM_LEN];
-        SendMessage(mParamEditWnd, WM_GETTEXT, MAX_WIN32_PARAM_LEN, (LPARAM)txt);
-        SetControlValueAfterTextEdit(txt);
+        WCHAR wtxt[MAX_WIN32_PARAM_LEN];
+        WDL_String tempUTF8;
+        SendMessageW(mParamEditWnd, WM_GETTEXT, MAX_WIN32_PARAM_LEN, (LPARAM)wtxt);
+        UTF16ToUTF8(tempUTF8, wtxt);
+        SetControlValueAfterTextEdit(tempUTF8.Get());
         DestroyEditWindow();
         break;
       }
@@ -953,12 +955,12 @@ void IGraphicsWin::MoveMouseCursor(float x, float y)
   p.x = std::round(x * scale);
   p.y = std::round(y * scale);
   
-  ::ClientToScreen((HWND)GetWindow(), &p);
+  ::ClientToScreen(mPlugWnd, &p);
   
   if (SetCursorPos(p.x, p.y))
   {
     GetCursorPos(&p);
-    ScreenToClient((HWND)GetWindow(), &p);
+    ScreenToClient(mPlugWnd, &p);
     
     mCursorX = p.x / scale;
     mCursorY = p.y / scale;
@@ -1002,6 +1004,18 @@ ECursor IGraphicsWin::SetMouseCursor(ECursor cursorType)
 bool IGraphicsWin::MouseCursorIsLocked()
 {
   return mCursorLock;
+}
+
+void IGraphicsWin::GetMouseLocation(float& x, float&y) const
+{
+  POINT p;
+  GetCursorPos(&p);
+  ScreenToClient(mPlugWnd, &p);
+
+  const float scale = GetTotalScale();
+
+  x = p.x / scale;
+  y = p.y / scale;
 }
 
 #ifdef IGRAPHICS_GL
@@ -1362,27 +1376,27 @@ HMENU IGraphicsWin::CreateMenu(IPopupMenu& menu, long* pOffsetIdx)
       //if (nItems < 160 && pMenu->getNbItemsPerColumn () > 0 && inc && !(inc % _menu->getNbItemsPerColumn ()))
       //  flags |= MF_MENUBARBREAK;
 
+      if (pMenuItem->GetEnabled())
+        flags |= MF_ENABLED;
+      else
+        flags |= MF_GRAYED;
+      if (pMenuItem->GetIsTitle())
+        flags |= MF_DISABLED;
+      if (pMenuItem->GetChecked())
+        flags |= MF_CHECKED;
+      else
+        flags |= MF_UNCHECKED;
+
       if (pMenuItem->GetSubmenu())
       {
         HMENU submenu = CreateMenu(*pMenuItem->GetSubmenu(), pOffsetIdx);
         if (submenu)
         {
-          AppendMenu(hMenu, flags|MF_POPUP|MF_ENABLED, (UINT_PTR)submenu, (const TCHAR*)entryText.Get());
+          AppendMenu(hMenu, flags|MF_POPUP, (UINT_PTR)submenu, (const TCHAR*)entryText.Get());
         }
       }
       else
       {
-        if (pMenuItem->GetEnabled())
-          flags |= MF_ENABLED;
-        else
-          flags |= MF_GRAYED;
-        if (pMenuItem->GetIsTitle())
-          flags |= MF_DISABLED;
-        if (pMenuItem->GetChecked())
-          flags |= MF_CHECKED;
-        else
-          flags |= MF_UNCHECKED;
-
         AppendMenu(hMenu, flags, offset + inc, entryText.Get());
       }
     }
@@ -1464,7 +1478,10 @@ void IGraphicsWin::CreatePlatformTextEntry(int paramIdx, const IText& text, cons
   const float scale = GetTotalScale();
   IRECT scaledBounds = bounds.GetScaled(scale);
 
-  mParamEditWnd = CreateWindow("EDIT", str, ES_AUTOHSCROLL /*only works for left aligned text*/ | WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_VISIBLE | ES_MULTILINE | editStyle,
+  WCHAR strWide[MAX_PARAM_DISPLAY_LEN];
+  UTF8ToUTF16(strWide, str, MAX_PARAM_DISPLAY_LEN);
+
+  mParamEditWnd = CreateWindowW(L"EDIT", strWide, ES_AUTOHSCROLL /*only works for left aligned text*/ | WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_VISIBLE | ES_MULTILINE | editStyle,
     scaledBounds.L, scaledBounds.T, scaledBounds.W()+1, scaledBounds.H()+1,
     mPlugWnd, (HMENU) PARAM_EDIT_ID, mHInstance, 0);
 

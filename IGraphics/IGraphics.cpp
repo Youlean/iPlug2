@@ -218,10 +218,16 @@ void IGraphics::SetControlValueAfterPopupMenu(IPopupMenu* pMenu)
   mInPopupMenu = nullptr;
 }
 
-void IGraphics::AttachBackground(const char* name)
+void IGraphics::AttachBackground(const char* fileName)
 {
-  IBitmap bg = LoadBitmap(name, 1, false);
-  IControl* pBG = new IBitmapControl(0, 0, bg, kNoParameter, EBlend::Default);
+  IControl* pBG = new IBitmapControl(0, 0, LoadBitmap(fileName, 1, false), kNoParameter, EBlend::Default);
+  pBG->SetDelegate(*GetDelegate());
+  mControls.Insert(0, pBG);
+}
+
+void IGraphics::AttachSVGBackground(const char* fileName)
+{
+  IControl* pBG = new ISVGControl(GetBounds(), LoadSVG(fileName), true);
   pBG->SetDelegate(*GetDelegate());
   mControls.Insert(0, pBG);
 }
@@ -500,7 +506,7 @@ void IGraphics::UpdatePeers(IControl* pCaller, int callerValIdx) // TODO: this c
 void IGraphics::PromptUserInput(IControl& control, const IRECT& bounds, int valIdx)
 {
   assert(valIdx > kNoValIdx);
-    
+  
   const IParam* pParam = control.GetParam(valIdx);
 
   if(pParam)
@@ -533,6 +539,13 @@ void IGraphics::PromptUserInput(IControl& control, const IRECT& bounds, int valI
     else // type == IParam::kTypeInt || type == IParam::kTypeDouble
     {
       pParam->GetDisplayForHost(currentText, false);
+      
+      if(control.GetPromptShowsParamLabel())
+      {
+        currentText.Append(" ");
+        currentText.Append(pParam->GetLabelForHost());
+      }
+      
       CreateTextEntry(control, control.GetText(), bounds, currentText.Get(), valIdx);
     }
   }
@@ -546,12 +559,12 @@ void IGraphics::DrawText(const IText& text, const char* str, const IRECT& bounds
   DoDrawText(text, str, bounds, pBlend);
 }
 
-void IGraphics::MeasureText(const IText& text, const char* str, IRECT& bounds) const
+float IGraphics::MeasureText(const IText& text, const char* str, IRECT& bounds) const
 {
   if (!str || str[0] == '\0')
-    return;
+    return 0.f;
     
-  DoMeasureText(text, str, bounds);
+  return DoMeasureText(text, str, bounds);
 }
 
 void IGraphics::DrawText(const IText& text, const char* str, float x, float y, const IBlend* pBlend)
@@ -1747,6 +1760,8 @@ void IGraphics::CreateTextEntry(IControl& control, const IText& text, const IREC
     mTextEntryControl->CreateTextEntry(paramIdx, text, bounds, control.GetTextEntryLength(), str);
   else
     CreatePlatformTextEntry(paramIdx, text, bounds, control.GetTextEntryLength(), str);
+  
+  mInTextEntry->SetDirty(false);
 }
 
 void IGraphics::DoCreatePopupMenu(IControl& control, IPopupMenu& menu, const IRECT& bounds, int valIdx, bool isContext)

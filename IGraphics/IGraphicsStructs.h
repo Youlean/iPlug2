@@ -2053,7 +2053,7 @@ struct IPattern
   /** /todo 
    * @param color /todo */
   IPattern(const IColor& color)
-  : mType(EPatternType::Solid), mExtend(EPatternExtend::Pad), mNStops(1)
+  : mType(EPatternType::Solid), mExtend(EPatternExtend::Pad), mNStops(1), mAntialias(true)
   {
     mStops[0] = IColorStop(color, 0.0);
   }

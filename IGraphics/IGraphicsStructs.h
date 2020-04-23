@@ -2042,11 +2042,12 @@ struct IPattern
   IColorStop mStops[16];
   int mNStops;
   IMatrix mTransform;
+  bool mAntialias;
   
   /** /todo 
    * @param type /todo */
   IPattern(EPatternType type)
-  : mType(type), mExtend(EPatternExtend::Pad), mNStops(0)
+  : mType(type), mExtend(EPatternExtend::Pad), mNStops(0), mAntialias(true)
   {}
   
   /** /todo 

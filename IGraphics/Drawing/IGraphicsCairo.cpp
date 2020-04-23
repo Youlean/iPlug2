@@ -428,20 +428,36 @@ void IGraphicsCairo::PathStroke(const IPattern& pattern, float thickness, const 
   cairo_set_line_width(mContext, thickness);
 
   CairoSetSourcePattern(mContext, pattern, pBlend);
+
+  cairo_antialias_t antialias = cairo_get_antialias(mContext);
+
+  if (!pattern.mAntialias)
+    cairo_set_antialias(mContext, cairo_antialias_t::CAIRO_ANTIALIAS_NONE);
+
   if (options.mPreserve)
     cairo_stroke_preserve(mContext);
   else
     cairo_stroke(mContext);
+
+  cairo_set_antialias(mContext, antialias);
 }
 
 void IGraphicsCairo::PathFill(const IPattern& pattern, const IFillOptions& options, const IBlend* pBlend) 
 {
   cairo_set_fill_rule(mContext, options.mFillRule == EFillRule::EvenOdd ? CAIRO_FILL_RULE_EVEN_ODD : CAIRO_FILL_RULE_WINDING);
   CairoSetSourcePattern(mContext, pattern, pBlend);
+
+  cairo_antialias_t antialias = cairo_get_antialias(mContext);
+
+  if (!pattern.mAntialias)
+    cairo_set_antialias(mContext, cairo_antialias_t::CAIRO_ANTIALIAS_NONE);
+
   if (options.mPreserve)
     cairo_fill_preserve(mContext);
   else
     cairo_fill(mContext);
+
+  cairo_set_antialias(mContext, antialias);
 }
 
 IColor IGraphicsCairo::GetPoint(int x, int y)

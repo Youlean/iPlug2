@@ -627,6 +627,9 @@ void IGraphicsSkia::PathStroke(const IPattern& pattern, float thickness, const I
   
   paint.setStrokeWidth(thickness);
   paint.setStrokeMiter(options.mMiterLimit);
+
+  if (!pattern.mAntialias)
+    paint.setAntiAlias(false);
     
   RenderPath(paint);
   
@@ -643,7 +646,10 @@ void IGraphicsSkia::PathFill(const IPattern& pattern, const IFillOptions& option
     mMainPath.setFillType(SkPathFillType::kWinding);
   else
     mMainPath.setFillType(SkPathFillType::kEvenOdd);
-  
+
+  if (!pattern.mAntialias)
+    paint.setAntiAlias(false);
+
   RenderPath(paint);
   
   if (!options.mPreserve)

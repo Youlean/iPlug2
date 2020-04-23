@@ -674,11 +674,15 @@ void IGraphicsNanoVG::PathStroke(const IPattern& pattern, float thickness, const
     nvgStrokeColor(mVG, NanoVGColor(pattern.GetStop(0).mColor, pBlend));
   else
     nvgStrokePaint(mVG, NanoVGPaint(mVG, pattern, pBlend));
+
+  if (!pattern.mAntialias)
+    nvgShapeAntiAlias(mVG, 0);
   
   nvgPathWinding(mVG, NVG_CCW);
   NanoVGSetBlendMode(mVG, pBlend);
   nvgStroke(mVG);
   nvgGlobalCompositeOperation(mVG, NVG_SOURCE_OVER);
+  nvgShapeAntiAlias(mVG, 1);
     
   if (!options.mPreserve)
     nvgBeginPath(mVG); // Clears the path state
@@ -707,10 +711,14 @@ void IGraphicsNanoVG::PathFill(const IPattern& pattern, const IFillOptions& opti
     nvgFillColor(mVG, NanoVGColor(pattern.GetStop(0).mColor, pBlend));
   else
     nvgFillPaint(mVG, NanoVGPaint(mVG, pattern, pBlend));
+
+  if (!pattern.mAntialias)
+    nvgShapeAntiAlias(mVG, 0);
   
   NanoVGSetBlendMode(mVG, pBlend);
   nvgFill(mVG);
   nvgGlobalCompositeOperation(mVG, NVG_SOURCE_OVER);
+  nvgShapeAntiAlias(mVG, 1);
 
   if (!options.mPreserve)
     nvgBeginPath(mVG); // Clears the path state

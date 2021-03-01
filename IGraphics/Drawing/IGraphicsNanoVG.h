@@ -11,7 +11,7 @@
 #pragma once
 
 #include "IPlugPlatform.h"
-#include "IGraphicsPathBase.h"
+#include "IGraphics.h"
 
 #include "nanovg.h"
 #include "mutex.h"
@@ -67,6 +67,9 @@ BEGIN_IGRAPHICS_NAMESPACE
 /** Converts IColor to a NVGcolor */
 NVGcolor NanoVGColor(const IColor& color, const IBlend* pBlend = 0);
 
+/** Helper to call nvgRect */
+void NanoVGRect(NVGcontext* pContext, const IRECT& r);
+
 /** Set the NanoVG context blend based on IBlend */
 void NanoVGSetBlendMode(NVGcontext* pContext, const IBlend* pBlend);
 
@@ -75,7 +78,7 @@ NVGpaint NanoVGPaint(NVGcontext* pContext, const IPattern& pattern, const IBlend
 
 /** IGraphics draw class using NanoVG  
 *   @ingroup DrawClasses */
-class IGraphicsNanoVG : public IGraphicsPathBase
+class IGraphicsNanoVG : public IGraphics
 {
 private:
   class Bitmap;
@@ -97,6 +100,8 @@ public:
   void DrawDottedLine(const IColor& color, float x1, float y1, float x2, float y2, const IBlend* pBlend, float thickness, float dashLen) override;
   void DrawDottedRect(const IColor& color, const IRECT& bounds, const IBlend* pBlend, float thickness, float dashLen) override;
 
+  void DrawFastDropShadow(const IRECT& innerBounds, const IRECT& outerBounds, float xyDrop = 5.f, float roundness = 0.f, float blur = 10.f, IBlend* pBlend = nullptr) override;
+  
   void PathClear() override;
   void PathClose() override;
   void PathArc(float cx, float cy, float r, float a1, float a2, EWinding winding) override;
@@ -117,10 +122,11 @@ public:
   bool BitmapExtSupported(const char* ext) override;
 
   void DeleteFBO(NVGframebuffer* pBuffer);
-    
+  
 protected:
   APIBitmap* LoadAPIBitmap(const char* fileNameOrResID, int scale, EResourceLocation location, const char* ext) override;
-  APIBitmap* CreateAPIBitmap(int width, int height, int scale, double drawScale) override;
+  APIBitmap* LoadAPIBitmap(const char* name, const void* pData, int dataSize, int scale) override;
+  APIBitmap* CreateAPIBitmap(int width, int height, int scale, double drawScale, bool cacheable = false) override;
 
   bool LoadAPIFont(const char* fontID, const PlatformFontPtr& font) override;
 

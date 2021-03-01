@@ -34,7 +34,7 @@ public:
   void* GetWinModuleHandle() override { return mHInstance; }
 
   void ForceEndUserEdit() override;
-  int GetPlatformWindowScale() const override { return GetScreenScale(); }
+  float GetPlatformWindowScale() const override { return GetScreenScale(); }
 
   void PlatformResize(bool parentHasResized) override;
 
@@ -116,6 +116,7 @@ private:
 
   PlatformFontPtr LoadPlatformFont(const char* fontID, const char* fileNameOrResID) override;
   PlatformFontPtr LoadPlatformFont(const char* fontID, const char* fontName, ETextStyle style) override;
+  PlatformFontPtr LoadPlatformFont(const char* fontID, void* pData, int dataSize) override;
   void CachePlatformFont(const char* fontID, const PlatformFontPtr& font) override;
 
   inline IMouseInfo GetMouseInfo(LPARAM lParam, WPARAM wParam);
@@ -142,25 +143,24 @@ private:
   HFONT mEditFont = nullptr;
   DWORD mPID = 0;
 
-#ifdef IGRAPHICS_VSYNC
   void StartVBlankThread(HWND hWnd);
   void StopVBlankThread();
   void VBlankNotify();
   HWND mVBlankWindow = 0; // Window to post messages to for every vsync
-  bool mVBlankShutdown = false; // Flag to indiciate that the vsync thread should shutdown
+  volatile bool mVBlankShutdown = false; // Flag to indiciate that the vsync thread should shutdown
   HANDLE mVBlankThread = INVALID_HANDLE_VALUE; //ID of thread.
   volatile DWORD mVBlankCount = 0; // running count of vblank events since the start of the window.
   int mVBlankSkipUntil = 0; // support for skipping vblank notification if the last callback took  too long.  This helps keep the message pump clear in the case of overload.
-#endif
-
+  bool mVSYNCEnabled = false;
+  
   const IParam* mEditParam = nullptr;
   IText mEditText;
   IRECT mEditRECT;
 
   EParamEditMsg mParamEditMsg = kNone;
   bool mShowingTooltip = false;
-  float mHiddenCursorX;
-  float mHiddenCursorY;
+  float mHiddenCursorX = 0.f;
+  float mHiddenCursorY = 0.f;
   int mTooltipIdx = -1;
 
   WDL_String mMainWndClassName;

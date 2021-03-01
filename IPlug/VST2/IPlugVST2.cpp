@@ -167,12 +167,10 @@ IPlugVST2::IPlugVST2(const InstanceInfo& info, const Config& config)
 
   SetBlockSize(DEFAULT_BLOCK_SIZE);
 
-  if(config.plugHasUI)
+  if (config.plugHasUI)
   {
     mAEffect.flags |= effFlagsHasEditor;
-    mEditRect.left = mEditRect.top = 0;
-    mEditRect.right = config.plugWidth;
-    mEditRect.bottom = config.plugHeight;
+    UpdateEditRect();
   }
   
   CreateTimer();
@@ -193,7 +191,7 @@ void IPlugVST2::EndInformHostOfParamChange(int idx)
   mHostCallback(&mAEffect, audioMasterEndEdit, idx, 0, 0, 0.0f);
 }
 
-void IPlugVST2::InformHostOfProgramChange()
+void IPlugVST2::InformHostOfPresetChange()
 {
   mHostCallback(&mAEffect, audioMasterUpdateDisplay, 0, 0, 0, 0.0f);
 }
@@ -206,23 +204,28 @@ bool IPlugVST2::EditorResize(int viewWidth, int viewHeight)
   {
     if (viewWidth != GetEditorWidth() || viewHeight != GetEditorHeight())
     {
-      mEditRect.left = mEditRect.top = 0;
-      mEditRect.right = viewWidth;
-      mEditRect.bottom = viewHeight;
-    
+      SetEditorSize(viewWidth, viewHeight);
+      UpdateEditRect();
+  
       resized = mHostCallback(&mAEffect, audioMasterSizeWindow, viewWidth, viewHeight, 0, 0.f);
     }
-    
-    SetEditorSize(viewWidth, viewHeight);
   }
 
   return resized;
+}
+
+void IPlugVST2::UpdateEditRect()
+{
+  mEditRect.left = mEditRect.top = 0;
+  mEditRect.right = GetEditorWidth();
+  mEditRect.bottom = GetEditorHeight();
 }
 
 void IPlugVST2::SetLatency(int samples)
 {
   mAEffect.initialDelay = samples;
   IPlugProcessor::SetLatency(samples);
+  mHostCallback(&mAEffect, audioMasterIOChanged, 0, 0, 0, 0.0f);
 }
 
 bool IPlugVST2::SendVSTEvent(VstEvent& event)
@@ -343,7 +346,7 @@ VstIntPtr VSTCALLBACK IPlugVST2::VSTDispatcher(AEffect *pEffect, VstInt32 opCode
       if (idx >= 0 && idx < _this->NParams())
       {
         ENTER_PARAMS_MUTEX_STATIC
-        strcpy((char*) ptr, _this->GetParam(idx)->GetLabelForHost());
+        strcpy((char*) ptr, _this->GetParam(idx)->GetLabel());
         LEAVE_PARAMS_MUTEX_STATIC
       }
       return 0;
@@ -353,7 +356,7 @@ VstIntPtr VSTCALLBACK IPlugVST2::VSTDispatcher(AEffect *pEffect, VstInt32 opCode
       if (idx >= 0 && idx < _this->NParams())
       {
         ENTER_PARAMS_MUTEX_STATIC
-        _this->GetParam(idx)->GetDisplayForHost(_this->mParamDisplayStr);
+        _this->GetParam(idx)->GetDisplay(_this->mParamDisplayStr);
         LEAVE_PARAMS_MUTEX_STATIC
         strcpy((char*) ptr, _this->mParamDisplayStr.Get());
       }
@@ -364,7 +367,7 @@ VstIntPtr VSTCALLBACK IPlugVST2::VSTDispatcher(AEffect *pEffect, VstInt32 opCode
       if (idx >= 0 && idx < _this->NParams())
       {
         ENTER_PARAMS_MUTEX_STATIC
-        strcpy((char*) ptr, _this->GetParam(idx)->GetNameForHost());
+        strcpy((char*) ptr, _this->GetParam(idx)->GetName());
         LEAVE_PARAMS_MUTEX_STATIC
       }
       return 0;
@@ -396,7 +399,7 @@ VstIntPtr VSTCALLBACK IPlugVST2::VSTDispatcher(AEffect *pEffect, VstInt32 opCode
             break;
         }
 
-        strcpy(props->label, pParam->GetLabelForHost());
+        strcpy(props->label, pParam->GetLabel());
         LEAVE_PARAMS_MUTEX_STATIC
 
         return 1;
@@ -450,6 +453,7 @@ VstIntPtr VSTCALLBACK IPlugVST2::VSTDispatcher(AEffect *pEffect, VstInt32 opCode
     {
       if (ptr && _this->HasUI())
       {
+        _this->UpdateEditRect();
         *(ERect**) ptr = &(_this->mEditRect);
         return 1;
       }
@@ -736,14 +740,21 @@ VstIntPtr VSTCALLBACK IPlugVST2::VSTDispatcher(AEffect *pEffect, VstInt32 opCode
           _this->mHasVSTExtensions |= VSTEXT_COCKOS;
           return 0xbeef0000;
         }
-        else if (!strcmp((char*) ptr, "hasCockosViewAsConfig"))
+
+        if (!strcmp((char*) ptr, "hasCockosViewAsConfig"))
         {
           _this->mHasVSTExtensions |= VSTEXT_COCOA;
           return 0xbeef0000;
         }
-        else if (!strcmp((char*) ptr, "wantsChannelCountNotifications"))
+
+        if (!strcmp((char*) ptr, "wantsChannelCountNotifications"))
         {
           return 1;
+        }
+
+        if (!strcmp((char*)ptr, "MPE"))
+        {
+          return _this->DoesMPE() ? 1 : 0;
         }
         
         return _this->VSTCanDo((char *) ptr);
@@ -777,7 +788,7 @@ VstIntPtr VSTCALLBACK IPlugVST2::VSTDispatcher(AEffect *pEffect, VstInt32 opCode
           {
             if (value >= 0 && value < _this->NParams())
             {
-              _this->GetParam((int) value)->GetDisplayForHost((double) opt, true, _this->mParamDisplayStr);
+              _this->GetParam((int) value)->GetDisplay((double) opt, true, _this->mParamDisplayStr);
               strcpy((char*) ptr, _this->mParamDisplayStr.Get());
             }
             return 0xbeef;

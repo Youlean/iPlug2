@@ -4,10 +4,12 @@ LFLAGS=
 CXX=g++
 
 ifdef DEBUG
-CFLAGS += -D_DEBUG -O0
+CFLAGS += -D_DEBUG -O0 -DWDL_CHECK_FOR_NON_UTF8_FOPEN
 else
 CFLAGS += -DNDEBUG -O
 endif
+
+CFLAGS += -D_FILE_OFFSET_BITS=64
 
 OBJS=nseel-caltab.o nseel-compiler.o nseel-eval.o nseel-lextab.o nseel-ram.o nseel-yylex.o nseel-cfunc.o fft.o
 
@@ -16,15 +18,26 @@ OBJS2=
 UNAME_S := $(shell uname -s)
 ARCH := $(shell uname -m)
 
+ifeq ($(ARCH), aarch64)
+  ifeq ($(shell $(CC) -dumpmachine | cut -f 1 -d -), arm)
+    # helper for armv7l userspace on aarch64 cpu
+    ARCH := armv7l
+  endif
+endif
+
 ifeq ($(UNAME_S),Darwin)
   CFLAGS += -arch $(ARCH)
 endif
 
-ifneq ($(filter arm%,$(ARCH)),)
-  CFLAGS += -fsigned-char -mfpu=vfp -march=armv6t2 -marm
-endif
-ifeq ($(ARCH),aarch64)
+ifeq ($(ARCH),arm64)
   CFLAGS += -fsigned-char
+else
+  ifneq ($(filter arm%,$(ARCH)),)
+    CFLAGS += -fsigned-char -mfpu=vfp -march=armv6t2 -marm
+  endif
+  ifeq ($(ARCH),aarch64)
+    CFLAGS += -fsigned-char
+  endif
 endif
 
 ifndef ALLOW_WARNINGS
@@ -63,7 +76,13 @@ ifndef NO_GFX
     CFLAGS += -DEEL_LICE_WANT_STANDALONE 
 
   ifeq ($(UNAME_S),Darwin)
-    CFLAGS += -mmacosx-version-min=10.5
+    CLANG_VER := $(shell clang --version|head -n 1| sed 's/.*version \([0-9][0-9]*\).*/\1/' )
+    CLANG_GT_9 := $(shell [ $(CLANG_VER) -gt 9 ] && echo true )
+    ifeq ($(CLANG_GT_9),true)
+      CFLAGS += -mmacosx-version-min=10.7 -stdlib=libc++
+    else
+      CFLAGS += -mmacosx-version-min=10.5
+    endif
     OBJS += swell-wnd.o swell-gdi.o swell.o swell-misc.o swell-dlg.o swell-menu.o swell-kb.o
     LFLAGS += -lobjc -framework Cocoa -framework Carbon
   else
@@ -77,8 +96,8 @@ ifndef NO_GFX
       LFLAGS += $(shell pkg-config --libs gdk-3.0) -lX11 -lXi
     endif
     ifndef NOFREETYPE
-      CFLAGS += -DSWELL_FREETYPE $(shell freetype-config --cflags)
-      LFLAGS += $(shell freetype-config --libs)
+      CFLAGS += -DSWELL_FREETYPE $(shell pkg-config --cflags freetype2)
+      LFLAGS += $(shell pkg-config --libs freetype2)
     endif
 
     OBJS += swell-wnd-generic.o swell-gdi-lice.o swell.o swell-misc-generic.o \

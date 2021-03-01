@@ -71,6 +71,11 @@ PlatformFontPtr IGraphicsMac::LoadPlatformFont(const char* fontID, const char* f
   return CoreTextHelpers::LoadPlatformFont(fontID, fontName, style);
 }
 
+PlatformFontPtr IGraphicsMac::LoadPlatformFont(const char* fontID, void* pData, int dataSize)
+{
+  return CoreTextHelpers::LoadPlatformFont(fontID, pData, dataSize);
+}
+
 void IGraphicsMac::CachePlatformFont(const char* fontID, const PlatformFontPtr& font)
 {
   CoreTextHelpers::CachePlatformFont(fontID, font, sFontDescriptorCache);
@@ -78,49 +83,52 @@ void IGraphicsMac::CachePlatformFont(const char* fontID, const PlatformFontPtr& 
 
 float IGraphicsMac::MeasureText(const IText& text, const char* str, IRECT& bounds) const
 {
-#ifdef IGRAPHICS_LICE
-  @autoreleasepool
-  {
-    return IGRAPHICS_DRAW_CLASS::MeasureText(text, str, bounds);
-  }
-#else
   return IGRAPHICS_DRAW_CLASS::MeasureText(text, str, bounds);
-#endif
-}
-
-void IGraphicsMac::ContextReady(void* pLayer)
-{
-  OnViewInitialized(pLayer);
-  SetScreenScale([[NSScreen mainScreen] backingScaleFactor]);
-  GetDelegate()->LayoutUI(this);
-  UpdateTooltips();
-  GetDelegate()->OnUIOpen();
 }
 
 void* IGraphicsMac::OpenWindow(void* pParent)
 {
   TRACE
   CloseWindow();
-  mView = (IGRAPHICS_VIEW*) [[IGRAPHICS_VIEW alloc] initWithIGraphics: this];
-  
-#ifndef IGRAPHICS_GL // with OpenGL, we don't get given the glcontext until later, ContextReady will get called elsewhere
-  IGRAPHICS_VIEW* pView = (IGRAPHICS_VIEW*) mView;
-  ContextReady([pView layer]);
+  IGRAPHICS_VIEW* pView = [[IGRAPHICS_VIEW alloc] initWithIGraphics: this];
+  mView = (void*) pView;
+    
+#ifdef IGRAPHICS_GL
+  [[pView openGLContext] makeCurrentContext];
 #endif
+    
+  OnViewInitialized([pView layer]);
+  SetScreenScale([[NSScreen mainScreen] backingScaleFactor]);
+  GetDelegate()->LayoutUI(this);
+  UpdateTooltips();
+  GetDelegate()->OnUIOpen();
   
   if (pParent)
   {
-    [(NSView*) pParent addSubview: (IGRAPHICS_VIEW*) mView];
+    [(NSView*) pParent addSubview: pView];
   }
 
   return mView;
+}
+
+void IGraphicsMac::AttachPlatformView(const IRECT& r, void* pView)
+{
+  NSView* pNewSubView = (NSView*) pView;
+  [pNewSubView setFrame:ToNSRect(this, r)];
+  
+  [(IGRAPHICS_VIEW*) mView addSubview:(NSView*) pNewSubView];
+}
+
+void IGraphicsMac::RemovePlatformView(void* pView)
+{
+  [(NSView*) pView removeFromSuperview];
 }
 
 void IGraphicsMac::CloseWindow()
 {
   if (mView)
   {
-#ifdef IGRAPHICS_IMGUI
+#if defined IGRAPHICS_IMGUI
     if(mImGuiView)
     {
       IGRAPHICS_IMGUIVIEW* pImGuiView = (IGRAPHICS_IMGUIVIEW*) mImGuiView;
@@ -133,7 +141,7 @@ void IGraphicsMac::CloseWindow()
     IGRAPHICS_VIEW* pView = (IGRAPHICS_VIEW*) mView;
       
 #ifdef IGRAPHICS_GL
-    [((IGRAPHICS_GLLAYER *)pView.layer).openGLContext makeCurrentContext];
+    [[pView openGLContext] makeCurrentContext];
 #endif
       
     [pView removeAllToolTips];
@@ -161,13 +169,15 @@ void IGraphicsMac::PlatformResize(bool parentHasResized)
     [[NSAnimationContext currentContext] setDuration:0.0];
     [(IGRAPHICS_VIEW*) mView setFrameSize: size ];
     
-#ifdef IGRAPHICS_IMGUI
+#if defined IGRAPHICS_IMGUI && !defined IGRAPHICS_SKIA && !defined IGRAPHICS_GL
     if(mImGuiView)
       [(IGRAPHICS_IMGUIVIEW*) mImGuiView setFrameSize: size ];
 #endif
     
     [NSAnimationContext endGrouping];
-  }  
+  }
+    
+  UpdateTooltips();
 }
 
 void IGraphicsMac::PointToScreen(float& x, float& y) const
@@ -613,7 +623,16 @@ bool IGraphicsMac::SetTextInClipboard(const char* str)
 
 void IGraphicsMac::CreatePlatformImGui()
 {
-#ifdef IGRAPHICS_IMGUI
+#if defined IGRAPHICS_IMGUI
+  #if defined IGRAPHICS_SKIA && IGRAPHICS_CPU
+    #define USE_IGRAPHICS_IMGUIVIEW 1
+  #elif defined IGRAPHICS_NANOVG && IGRAPHICS_METAL
+    #define USE_IGRAPHICS_IMGUIVIEW 1
+#else
+  #define USE_IGRAPHICS_IMGUIVIEW 0
+#endif
+
+#if USE_IGRAPHICS_IMGUIVIEW
   if(mView)
   {
     IGRAPHICS_VIEW* pView = (IGRAPHICS_VIEW*) mView;
@@ -623,18 +642,13 @@ void IGraphicsMac::CreatePlatformImGui()
     mImGuiView = pImGuiView;
   }
 #endif
+#endif // IGRAPHICS_IMGUI
 }
 
-#ifdef IGRAPHICS_AGG
-  #include "IGraphicsAGG.cpp"
-#elif defined IGRAPHICS_CAIRO
-  #include "IGraphicsCairo.cpp"
-#elif defined IGRAPHICS_NANOVG
+#if defined IGRAPHICS_NANOVG
   #include "IGraphicsNanoVG.cpp"
 #elif defined IGRAPHICS_SKIA
   #include "IGraphicsSkia.cpp"
-#elif defined IGRAPHICS_LICE
-  #include "IGraphicsLice.cpp"
 #else
   #error Either NO_IGRAPHICS or one and only one choice of graphics library must be defined!
 #endif

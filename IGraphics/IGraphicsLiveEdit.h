@@ -234,9 +234,8 @@ private:
 class IGraphicsLiveEdit : public IControl
 {
 public:
-  IGraphicsLiveEdit(bool mouseOversEnabled, const char* liveEditSourcePath)
+  IGraphicsLiveEdit(bool mouseOversEnabled)
   : IControl(IRECT())
-  , mSourceEditor(liveEditSourcePath)
   , mGridSize(10)
   , mMouseOversEnabled(mouseOversEnabled) 
   {
@@ -262,7 +261,12 @@ public:
       IControl* pControl = GetUI()->GetControl(c);
       mMouseDownRECT = pControl->GetRECT();
       mMouseDownTargetRECT = pControl->GetTargetRECT();
+
+      if(!mod.S)
+        mSelectedControls.Empty();
       
+      mSelectedControls.Add(pControl);
+
       if(mod.A)
       {
         GetUI()->AttachControl(new PlaceHolder(mMouseDownRECT));
@@ -270,6 +274,11 @@ public:
         mMouseClickedOnResizeHandle = false;
 
         mSourceEditor.AddControlToSource("PlaceHolder(LIVE_EDIT_RECT())", mMouseDownRECT);
+      }
+      else if (mod.R)
+      {
+        mClickedOnControl = c;
+        GetUI()->CreatePopupMenu(*this, mRightClickOnControlMenu, x, y);
       }
       else if (mod.R)
       {
@@ -289,6 +298,12 @@ public:
     else if(mod.R)
     {
       GetUI()->CreatePopupMenu(*this, mRightClickOutsideControlMenu, x, y);
+    }
+    else
+    {
+      mSelectedControls.Empty();
+      mDragRegion.L = mDragRegion.R = x;
+      mDragRegion.T = mDragRegion.B = y;
     }
   }
   
@@ -310,6 +325,8 @@ public:
     mClickedOnControl = -1;
     mMouseClickedOnResizeHandle = false;
     GetUI()->SetAllControlsDirty();
+    
+    mDragRegion = IRECT();
   }
   
   void OnMouseDblClick(float x, float y, const IMouseMod& mod) override
@@ -354,26 +371,61 @@ public:
         if(r.R < mMouseDownRECT.L +mGridSize) r.R = mMouseDownRECT.L+mGridSize;
         if(r.B < mMouseDownRECT.T +mGridSize) r.B = mMouseDownRECT.T+mGridSize;
           
-        pControl->SetSize(r.W(), r.H());
+        GetUI()->SetControlSize(mClickedOnControl, r.W(), r.H());
       }
       else
       {
         const float x1 = SnapToGrid(mMouseDownRECT.L + (x - mouseDownX));
         const float y1 = SnapToGrid(mMouseDownRECT.T + (y - mouseDownY));
           
-        pControl->SetPosition(x1, y1);
+        GetUI()->SetControlPosition(mClickedOnControl, x1, y1);
       }
-      
-      pControl->SetRECT(r);
-      pControl->SetTargetRECT(r);
-
-      mSourceEditor.UpdateControlRectSource(GetUI(), pControl, r);
-      
-      DBGMSG("%i, %i, %i, %i\n", (int) r.L, (int) r.T, (int) r.R, (int) r.B);
-      
-        
-      GetUI()->SetAllControlsDirty();
     }
+    else
+    {
+      float mouseDownX, mouseDownY;
+      GetUI()->GetMouseDownPoint(mouseDownX, mouseDownY);
+      mDragRegion.L = x < mouseDownX ? x : mouseDownX;
+      mDragRegion.R = x < mouseDownX ? mouseDownX : x;
+      mDragRegion.T = y < mouseDownY ? y : mouseDownY;
+      mDragRegion.B = y < mouseDownY ? mouseDownY : y;
+      
+      GetUI()->ForStandardControlsFunc([&](IControl& c) {
+                                         if(mDragRegion.Contains(c.GetRECT())) {
+                                           if(mSelectedControls.FindR(&c) == -1)
+                                             mSelectedControls.Add(&c);
+                                         }
+                                         else {
+                                           int idx = mSelectedControls.FindR(&c);
+                                           if(idx > -1)
+                                             mSelectedControls.Delete(idx);
+                                         }
+                                       });
+    }
+  }
+  
+  bool OnKeyDown(float x, float y, const IKeyPress& key) override
+  {
+    GetUI()->ReleaseMouseCapture();
+    
+    if(key.VK == kVK_BACK || key.VK == kVK_DELETE)
+    {
+      if(mSelectedControls.GetSize())
+      {
+        for(int i = 0; i < mSelectedControls.GetSize(); i++)
+        {
+          IControl* pControl = mSelectedControls.Get(i);
+          GetUI()->RemoveControl(pControl);
+        }
+        
+        mSelectedControls.Empty();
+        GetUI()->SetAllControlsDirty();
+        
+        return true;
+      }
+    }
+    
+    return false;
   }
   
   void OnPopupMenuSelection(IPopupMenu* pSelectedMenu, int valIdx) override
@@ -384,28 +436,16 @@ public:
       float x, y;
       GetUI()->GetMouseDownPoint(x, y);
       IRECT b = IRECT(x, y, x + 100.f, y + 100.f);
-      const char* controlConstructor = "";
 
       switch(idx)
       {
         case 0:
           GetUI()->AttachControl(new PlaceHolder(b));
-          controlConstructor = "PlaceHolder(LIVE_EDIT_RECT())";
-          mSourceEditor.AddControlToSource(controlConstructor, b);
-          break;
-        case 1:
-          GetUI()->AttachControl(new IVKnobControl(b, nullptr));
-          controlConstructor = "IVKnobControl(LIVE_EDIT_RECT(), nullptr)";
-          mSourceEditor.AddControlToSource(controlConstructor, b);
-          break;
-        case 2:
-          GetUI()->AttachControl(new IVSliderControl(b, nullptr));
-          controlConstructor = "IVSliderControl(LIVE_EDIT_RECT(), nullptr)";
-          mSourceEditor.AddControlToSource(controlConstructor, b);
           break;
         default:
           break;
       }
+
     }
 
     if (pSelectedMenu && pSelectedMenu == &mRightClickOnControlMenu)
@@ -414,12 +454,13 @@ public:
 
       switch (idx)
       {
-      case 0:
-        GetUI()->RemoveSingleControl(mClickedOnControl);
-        mSourceEditor.RemoveControlFromSource(mClickedOnControl);
-        break;
-      default:
-        break;
+        case 0:
+          mSelectedControls.Empty();
+          GetUI()->RemoveControl(mClickedOnControl);
+          mClickedOnControl = -1;
+          break;
+        default:
+          break;
       }
 
     }
@@ -446,10 +487,21 @@ public:
       g.FillTriangle(mRectColor, h.L, h.B, h.R, h.B, h.R, h.T);
       g.DrawTriangle(COLOR_BLACK, h.L, h.B, h.R, h.B, h.R, h.T);
     }
+    
+    for(int i = 0; i< mSelectedControls.GetSize(); i++)
+    {
+      g.DrawDottedRect(COLOR_WHITE, mSelectedControls.Get(i)->GetRECT());
+    }
+    
+    if(!mDragRegion.Empty())
+    {
+      g.DrawDottedRect(COLOR_RED, mDragRegion);
+    }
   }
   
   void OnResize() override
   {
+    mSelectedControls.Empty();
     mRECT = GetUI()->GetBounds();
     SetTargetRECT(mRECT);
   }
@@ -470,15 +522,14 @@ public:
   }
 
 private:
-  IPopupMenu mRightClickOutsideControlMenu {"Outside Control", {"Add Place Holder", "Add IVKnobControl", "Add IVButtonControl"}};
+  IPopupMenu mRightClickOutsideControlMenu {"Outside Control", {"Add Place Holder"}};
   IPopupMenu mRightClickOnControlMenu{ "On Control", {"Delete Control"} };
 
-  bool mMouseOversEnabled;
-//  bool mEditModeActive = false;
-//  bool mLiveEditingEnabled = false;
+  bool mMouseOversEnabled = false;
   bool mMouseClickedOnResizeHandle = false;
   bool mMouseIsDragging = false;
   WDL_String mErrorMessage;
+  WDL_PtrList<IControl> mSelectedControls;
 
   IColor mGridColor = COLOR_WHITE;
   IColor mRectColor = COLOR_WHITE;
@@ -486,6 +537,7 @@ private:
 
   IRECT mMouseDownRECT;
   IRECT mMouseDownTargetRECT;
+  IRECT mDragRegion;
 
   float mGridSize = 10;
   int mClickedOnControl = -1;

@@ -1145,6 +1145,8 @@ public:
    * @param enable Set \c true if you wish to enable live editing mode */
   void EnableLiveEdit(bool enable);
 
+  void SetLiveEditSourcePath(const char* path) { mLiveEditSourcePath.Set(path); }
+
   /**@return \c true if live edit mode is enabled */
   bool LiveEditEnabled() const { return mLiveEdit != nullptr; }
   

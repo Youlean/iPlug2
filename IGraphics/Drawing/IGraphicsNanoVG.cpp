@@ -626,21 +626,24 @@ void IGraphicsNanoVG::PrepareAndMeasureText(const IText& text, const char* str, 
   nvgFontBlur(mVG, 0);
   nvgFontSize(mVG, text.mSize);
   nvgFontFace(mVG, text.mFont);
+
+  float ascent, descent, height;
+  nvgTextMetrics(mVG, &ascent, &descent, &height);
   
   int align = 0;
   
   switch (text.mAlign)
   {
-    case EAlign::Near:     align = NVG_ALIGN_LEFT;     x = r.L;        break;
-    case EAlign::Center:   align = NVG_ALIGN_CENTER;   x = r.MW();     break;
-    case EAlign::Far:      align = NVG_ALIGN_RIGHT;    x = r.R;        break;
-  }
+    case EAlign::Near:     align = NVG_ALIGN_LEFT;     x = r.L;                        break;
+    case EAlign::Center:   align = NVG_ALIGN_CENTER;   x = r.MW();                     break;
+    case EAlign::Far:      align = NVG_ALIGN_RIGHT;    x = r.R;                        break;
+  }                
   
   switch (text.mVAlign)
   {
-    case EVAlign::Top:     align |= NVG_ALIGN_TOP;     y = r.T;        break;
-    case EVAlign::Middle:  align |= NVG_ALIGN_MIDDLE;  y = r.MH();     break;
-    case EVAlign::Bottom:  align |= NVG_ALIGN_BOTTOM;  y = r.B;        break;
+    case EVAlign::Top:     align |= NVG_ALIGN_TOP;     y = r.T;                        break;
+    case EVAlign::Middle:  align |= NVG_ALIGN_MIDDLE;  y = r.MH() - descent / 2.0;     break;
+    case EVAlign::Bottom:  align |= NVG_ALIGN_BASELINE;  y = r.B;                      break;
   }
   
   nvgTextAlign(mVG, align);
@@ -756,13 +759,13 @@ bool IGraphicsNanoVG::LoadAPIFont(const char* fontID, const PlatformFontPtr& fon
     
   if (cached)
   {
-    nvgCreateFontFaceMem(mVG, fontID, cached->Get(), cached->GetSize(), cached->GetFaceIdx(), 0);
+    nvgCreateFontMem(mVG, fontID, cached->Get(), cached->GetSize(), cached->GetFaceIdx());
     return true;
   }
     
   IFontDataPtr data = font->GetFontData();
 
-  if (data->IsValid() && nvgCreateFontFaceMem(mVG, fontID, data->Get(), data->GetSize(), data->GetFaceIdx(), 0) != -1)
+  if (data->IsValid() && nvgCreateFontMem(mVG, fontID, data->Get(), data->GetSize(), data->GetFaceIdx()) != -1)
   {
     storage.Add(data.release(), fontID);
     return true;

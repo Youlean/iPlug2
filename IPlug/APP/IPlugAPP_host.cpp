@@ -373,9 +373,9 @@ bool IPlugAPPHost::TryToChangeAudioDriverType()
 
 #if defined OS_WIN
   if(mState.mAudioDriverType == kDeviceASIO)
-    mDAC = std::make_unique<RtAudio>(RtAudio::WINDOWS_ASIO);
+    mDAC = std::make_unique<RtAudio>(RtAudio::WINDOWS_ASIO);// WINDOWS_WASAPI);
   else
-    mDAC = std::make_unique<RtAudio>(RtAudio::WINDOWS_DS);
+    mDAC = std::make_unique<RtAudio>(RtAudio::WINDOWS_WASAPI);
 #elif defined OS_MAC
   if(mState.mAudioDriverType == kDeviceCoreAudio)
     mDAC = std::make_unique<RtAudio>(RtAudio::MACOSX_CORE);

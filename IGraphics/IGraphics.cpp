@@ -1507,7 +1507,7 @@ void IGraphics::EnableLiveEdit(bool enable)
   {
     if (!mLiveEdit)
     {
-      mLiveEdit = std::make_unique<IGraphicsLiveEdit>(mEnableMouseOver);
+      mLiveEdit = std::make_unique<IGraphicsLiveEdit>(mEnableMouseOver, mLiveEditSourcePath.Get());
       mLiveEdit->SetDelegate(*GetDelegate());
     }
   }

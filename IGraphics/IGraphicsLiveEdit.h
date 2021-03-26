@@ -15,6 +15,14 @@
  * @copydoc IGraphicsLiveEdit
  */
 
+#define LIVE_EDIT_INIT(p) pGraphics->SetLiveEditSourcePath(p);
+#define LIVE_EDIT_FINISH
+
+#define LIVE_EDIT_CONTROL_START
+#define LIVE_EDIT_CONTROL_END
+
+#define LIVE_EDIT_RECT(L, T, R, B) IRECT(L, T, R, B)
+
 #ifndef NDEBUG
 
 #include "IControl.h"
@@ -34,15 +42,6 @@ BEGIN_IGRAPHICS_NAMESPACE
  * LIVE_EDIT_RECT should be used for the IRECT
  *
  * All macros should be placed on the new line. */
-
-#define LIVE_EDIT_INIT(p) pGraphics->SetLiveEditSourcePath(p);
-#define LIVE_EDIT_FINISH
-
-#define LIVE_EDIT_CONTROL_START
-#define LIVE_EDIT_CONTROL_END
-
-#define LIVE_EDIT_RECT(L, T, R, B) IRECT(L, T, R, B)
-
 
 class IGraphicsLiveEditSourceEditor
 {
@@ -234,10 +233,11 @@ private:
 class IGraphicsLiveEdit : public IControl
 {
 public:
-  IGraphicsLiveEdit(bool mouseOversEnabled)
+  IGraphicsLiveEdit(bool mouseOversEnabled, const char* liveEditSourcePath)
   : IControl(IRECT())
   , mGridSize(10)
-  , mMouseOversEnabled(mouseOversEnabled) 
+  , mMouseOversEnabled(mouseOversEnabled)
+  , mSourceEditor(liveEditSourcePath)
   {
     mTargetRECT = mRECT;
   }
@@ -380,6 +380,8 @@ public:
           
         GetUI()->SetControlPosition(mClickedOnControl, x1, y1);
       }
+
+      mSourceEditor.UpdateControlRectSource(GetUI(), pControl, pControl->GetRECT());
     }
     else
     {

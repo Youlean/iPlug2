@@ -52,6 +52,7 @@ def extractInt(line, macro):
     config[macro] = int(line[len(lineText):])
 
 def extractStringElement(line, macro):
+  line = line.replace('\r', '')
   lineText = "#define " + macro + " "
   if lineText in line:
     if '\"' in line:

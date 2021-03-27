@@ -79,6 +79,15 @@
   [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(receiveNotification:) name:@"LaunchBTMidiDialog" object:nil];
 }
 
+-(void) viewWillTransitionToSize:(CGSize)size withTransitionCoordinator:(id<UIViewControllerTransitionCoordinator>)coordinator
+{
+  IPlugAUAudioUnit* au = (IPlugAUAudioUnit*) self->player.currentAudioUnit;
+  [au resize:CGSizeMake (size.width, size.height)];
+
+  [iplugViewController viewDidDisappear:false];
+  [iplugViewController viewWillAppear:false];
+}
+
 -(void) receiveNotification:(NSNotification*) notification
 {
   if ([notification.name isEqualToString:@"LaunchBTMidiDialog"])
@@ -106,7 +115,7 @@
   UIView* view = iplugViewController.view;
   view.frame = auView.bounds;
   [auView addSubview: view];
-
+  
   view.translatesAutoresizingMaskIntoConstraints = NO;
 
   NSArray *constraints = [NSLayoutConstraint constraintsWithVisualFormat: @"H:|[view]|" options:0 metrics:nil views:NSDictionaryOfVariableBindings(view)];

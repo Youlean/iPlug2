@@ -15,6 +15,8 @@
 #import "IPlugAUAudioUnit.h"
 #include "IPlugAUv3.h"
 #include "AUv2/IPlugAU_ioconfig.h"
+#include "IGraphics.h"
+#include "IGraphicsIOS.h"
 
 #if !__has_feature(objc_arc)
 #error This file must be compiled with Arc. Use -fobjc-arc flag
@@ -817,6 +819,11 @@ static AUAudioUnitPreset* NewAUPreset(NSInteger number, NSString* pName)
 - (void)closeWindow
 {
   mPlug->CloseWindow();
+}
+- (void)resize: (CGSize) size
+{
+  if (mPlug->GetUI())
+    mPlug->GetUI()->Resize(size.width, size.height, 1);
 }
 
 - (NSInteger)width

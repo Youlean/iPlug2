@@ -64,17 +64,34 @@
   AVAudioSession* session = [AVAudioSession sharedInstance];
   [session setCategory: AVAudioSessionCategoryPlayAndRecord error:&error];
 //  [session overrideOutputAudioPort:AVAudioSessionPortOverrideSpeaker error:&error];
-  [session setPreferredSampleRate:44100. error:nil];
-  [session setPreferredIOBufferDuration:0.005 error:nil];
+  [session setPreferredSampleRate:44100. error:&error];
+  [session setPreferredIOBufferDuration:0.005 error:&error];
+  
   AVAudioMixerNode* mainMixer = [audioEngine mainMixerNode];
   mainMixer.outputVolume = 1;
-  AVAudioFormat* format = [mainMixer outputFormatForBus:0];
+  
+//  AVAudioFormat* formatIn = [mainMixer inputFormatForBus:0];
+//  AVAudioFormat* formatOut = [mainMixer outputFormatForBus:0];
+  
+  AVAudioFormat* formatI = [[AVAudioFormat alloc] initStandardFormatWithSampleRate:session.sampleRate channels:(int)session.inputNumberOfChannels];
+  
+  AVAudioFormat* formatO = [[AVAudioFormat alloc] initStandardFormatWithSampleRate:session.sampleRate channels:(int)session.outputNumberOfChannels];
+  
   [audioEngine attachNode:avAudioUnit];
   
+//  double s1 = session.sampleRate;
+//  double s2 = formatIn.sampleRate;
+//  double s3 = formatOut.sampleRate;
+//
+//  double s4 = formatI.sampleRate;
+//  double s5 = formatO.sampleRate;
+  
+  //[audioEngine connect:avAudioUnit to:mainMixer format: formatI];
+  
 #if PLUG_TYPE==0
-  [audioEngine connect:audioEngine.inputNode to:avAudioUnit format: format];
+  [audioEngine connect:audioEngine.inputNode to:avAudioUnit format: formatI];
 #endif
-  [audioEngine connect:avAudioUnit to:audioEngine.outputNode format: format];
+  [audioEngine connect:avAudioUnit to:audioEngine.outputNode format: formatO];
 
   [self start];
   

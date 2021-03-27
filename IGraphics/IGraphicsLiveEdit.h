@@ -380,7 +380,7 @@ public:
           
         GetUI()->SetControlPosition(mClickedOnControl, x1, y1);
       }
-
+    
       mSourceEditor.UpdateControlRectSource(GetUI(), pControl, pControl->GetRECT());
     }
     else
@@ -492,6 +492,18 @@ public:
     
     for(int i = 0; i< mSelectedControls.GetSize(); i++)
     {
+      IRECT cr = mSelectedControls.Get(i)->GetRECT();
+      IRECT textRect = cr;
+      textRect.B = textRect.T;
+      textRect.T -= 15;
+      
+      WDL_String rectSize;
+      rectSize.SetFormatted(128, "%i, %i, %i, %i", (int)cr.L, (int)cr.T, (int)cr.R, (int)cr.B);
+      
+      mText.mFGColor = COLOR_WHITE;
+      mText.mVAlign = EVAlign::Top;
+      g.DrawText(mText, rectSize.Get(), textRect);
+      
       g.DrawDottedRect(COLOR_WHITE, mSelectedControls.Get(i)->GetRECT());
     }
     
